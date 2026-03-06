@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>German Property Purchase — Workflow</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f4f1ec;
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+    color: #1a1a1a;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #888;
+    font-weight: 300;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+
+  .diagram-wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0;
+  }
+
+  /* ── Time axis ── */
+  .time-axis {
+    width: 72px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 74px;
+  }
+
+  .phase-band {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    position: relative;
+  }
+  .phase-band::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 2px;
+    opacity: 0.25;
+    background: currentColor;
+  }
+  .phase-label-vert {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding: 12px 0;
+  }
+
+  /* ── Lanes wrapper — position:relative so SVG can overlay ── */
+  .lanes-outer {
+    flex: 1;
+    position: relative;
+  }
+
+  /* The grid itself */
+  .lanes {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.08);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: relative;
+    z-index: 1;          /* grid sits at z:1 */
+  }
+
+  /* SVG arrow layer sits ABOVE the grid */
+  #arrow-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;          /* above grid */
+    overflow: visible;
+  }
+
+  /* ── Actor headers ── */
+  .actor-header {
+    padding: 18px 12px 16px;
+    text-align: center;
+    border-bottom: 2px solid #e8e3db;
+    border-right: 1px solid #e8e3db;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: white;
+  }
+  .actor-header:last-child { border-right: none; }
+  .actor-icon { font-size: 1.6rem; }
+  .actor-name {
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #333;
+    line-height: 1.3;
+  }
+
+  /* ── Lane columns ── */
+  .lane-col {
+    border-right: 1px solid #e8e3db;
+    display: flex;
+    flex-direction: column;
+  }
+  .lane-col:last-child { border-right: none; }
+
+  /* ── Time slots ── */
+  .slot {
+    flex: 1;
+    padding: 14px 12px;
+    border-bottom: 1px dashed #e8e3db;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 110px;
+    position: relative;
+  }
+  .slot:last-child { border-bottom: none; }
+
+  .bg-p1    { background: #fdf8f2; }
+  .bg-p2    { background: #eef4fd; }
+  .bg-p3    { background: #f7f3fc; }
+  .bg-p4    { background: #edfbf2; }
+  .bg-empty { background: #fafaf9; }
+
+  /* ── Step cards ── */
+  .step {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 0.77rem;
+    line-height: 1.45;
+    color: #222;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+    width: 100%;
+    border-top: 3px solid transparent;
+  }
+  .step strong {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+  .step.c-orange { border-top-color: #e07a2f; }
+  .step.c-blue   { border-top-color: #3d7dd4; }
+  .step.c-purple { border-top-color: #9b59b6; }
+  .step.c-green  { border-top-color: #27ae60; }
+
+  .arrow-down { font-size: 1rem; color: #bbb; line-height: 1; }
+
+  .mail-pill {
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.4;
+    width: 100%;
+    border: 1.5px dashed;
+  }
+  .mp-blue   { border-color: #3d7dd4; background: #f0f6ff; color: #1a5fb0; }
+  .mp-purple { border-color: #9b59b6; background: #faf5ff; color: #6b2fa0; }
+
+  .stripe {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .idle {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #e0ddd8;
+    margin-top: 8px;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.74rem;
+    color: #666;
+  }
+  .ldot   { width: 10px; height: 10px; border-radius: 50%; }
+  .ldash  { width: 22px; border-bottom: 2px dashed; }
+  .lsolid { width: 22px; border-bottom: 2px solid; }
+</style>
+</head>
+<body>
+
+<h1>German Property Purchase</h1>
+<p class="subtitle">End-to-End Transaction Workflow · Time flows downward</p>
+
+<div class="diagram-wrap">
+
+  <!-- TIME AXIS -->
+  <div class="time-axis">
+    <div class="phase-band" style="flex:2; color:#e07a2f;">
+      <span class="phase-label-vert" style="color:#e07a2f;">Negotiation</span>
+    </div>
+    <div class="phase-band" style="flex:2; color:#3d7dd4;">
+      <span class="phase-label-vert" style="color:#3d7dd4;">DE Notarization</span>
+    </div>
+    <div class="phase-band" style="flex:2; color:#9b59b6;">
+      <span class="phase-label-vert" style="color:#9b59b6;">US Notarization</span>
+    </div>
+    <div class="phase-band" style="flex:1; color:#27ae60;">
+      <span class="phase-label-vert" style="color:#27ae60;">Closing</span>
+    </div>
+  </div>
+
+  <!-- LANES + SVG OVERLAY -->
+  <div class="lanes-outer">
+
+    <!-- Arrow SVG — drawn by JS after layout -->
+    <svg id="arrow-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+    <div class="lanes" id="lanes-grid">
+
+      <!-- HEADERS -->
+      <div class="actor-header">
+        <span class="actor-icon">🤝</span>
+        <span class="actor-name">Broker</span>
+      </div>
+      <div class="actor-header">
+        <span class="actor-icon">🧑‍💼</span>
+        <span class="actor-name">Buyer</span>
+      </div>
+      <div class="actor-header">
+        <span class="actor-icon">🏛️</span>
+        <span class="actor-name">German Notary</span>
+      </div>
+      <div class="actor-header">
+        <span class="actor-icon">🏠</span>
+        <span class="actor-name">Sellers<br>Sue &amp; Martin</span>
+      </div>
+
+      <!-- ══ PHASE 1 ROW A — Negotiation ══ -->
+      <div class="lane-col"><div class="slot bg-p1">
+        <div class="stripe" style="background:#e07a2f;"></div>
+        <div class="step c-orange" id="s-broker-negotiate">
+          <strong>Mediate Negotiation</strong>Facilitates buyer–seller agreement
+        </div>
+      </div></div>
+      <div class="lane-col"><div class="slot bg-p1">
+        <div class="stripe" style="background:#e07a2f;"></div>
+        <div class="step c-orange" id="s-buyer-review">
+          <strong>Review Terms</strong>Buyer evaluates the contract
+        </div>
+      </div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-p1">
+        <div class="stripe" style="background:#e07a2f;"></div>
+        <div class="step c-orange" id="s-seller-review">
+          <strong>Review Terms</strong>Sellers agree to conditions
+        </div>
+      </div></div>
+
+      <!-- ══ PHASE 1 ROW B — Contract drafted ══ -->
+      <div class="lane-col"><div class="slot bg-p1">
+        <div class="stripe" style="background:#e07a2f;"></div>
+        <div class="step c-orange" id="s-broker-draft">
+          <strong>Draft Contract</strong>Final purchase contract prepared
+        </div>
+      </div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+
+      <!-- ══ PHASE 2 ROW A — Buyer signs ══ -->
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-p2">
+        <div class="stripe" style="background:#3d7dd4;"></div>
+        <div class="step c-blue" id="s-buyer-sign">
+          <strong>Sign Contract</strong>Buyer signs in Germany
+        </div>
+      </div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+
+      <!-- ══ PHASE 2 ROW B — Notary certifies + mails ══ -->
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-p2">
+        <div class="stripe" style="background:#3d7dd4;"></div>
+        <div class="step c-blue" id="s-notary-certify">
+          <strong>Notarize Contract</strong>Buyer's signature officially certified
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="mail-pill mp-blue" id="s-notary-mail">✉️ Mail contract to sellers in the U.S.</div>
+      </div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+
+      <!-- ══ PHASE 3 ROW A — Sellers receive ══ -->
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-p3">
+        <div class="stripe" style="background:#9b59b6;"></div>
+        <div class="step c-purple" id="s-seller-receive">
+          <strong>Receive Contract</strong>Delivered by mail from Germany
+        </div>
+      </div></div>
+
+      <!-- ══ PHASE 3 ROW B — Consulate + mail back ══ -->
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-p3">
+        <div class="stripe" style="background:#9b59b6;"></div>
+        <div class="step c-purple" id="s-seller-consulate">
+          <strong>Visit German Consulate</strong>Signatures notarized in the U.S.
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="mail-pill mp-purple" id="s-seller-mail">✉️ Mail signed contract back to German Notary</div>
+      </div></div>
+
+      <!-- ══ PHASE 4 — Closing ══ -->
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+      <div class="lane-col"><div class="slot bg-p4">
+        <div class="stripe" style="background:#27ae60;"></div>
+        <div class="step c-green" id="s-notary-receive">
+          <strong>Receive &amp; Register</strong>Countersigned contract arrives
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="step c-green" id="s-notary-finalize">
+          <strong>🎉 Transaction Complete</strong>Deal officially finalized
+        </div>
+      </div></div>
+      <div class="lane-col"><div class="slot bg-empty"><div class="idle"></div></div></div>
+
+    </div><!-- /.lanes -->
+  </div><!-- /.lanes-outer -->
+</div><!-- /.diagram-wrap -->
+
+<div class="legend">
+  <div class="legend-item"><span class="ldot" style="background:#e07a2f"></span> Negotiation</div>
+  <div class="legend-item"><span class="ldot" style="background:#3d7dd4"></span> DE Notarization</div>
+  <div class="legend-item"><span class="ldot" style="background:#9b59b6"></span> US Notarization</div>
+  <div class="legend-item"><span class="ldot" style="background:#27ae60"></span> Closing</div>
+  <div class="legend-item"><span class="lsolid" style="border-color:#888"></span> Handoff</div>
+  <div class="legend-item"><span class="ldash" style="border-color:#3d7dd4"></span> Physical mail</div>
+</div>
+
+<script>
+(function () {
+  const NS = 'http://www.w3.org/2000/svg';
+
+  function rect(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    return el.getBoundingClientRect();
+  }
+
+  function svgPt(clientX, clientY, svg) {
+    const r = svg.getBoundingClientRect();
+    return { x: clientX - r.left, y: clientY - r.top };
+  }
+
+  function addDefs(svg) {
+    let defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(NS, 'defs');
+      svg.prepend(defs);
+    }
+    return defs;
+  }
+
+  function makeMarker(defs, id, color) {
+    const m = document.createElementNS(NS, 'marker');
+    m.setAttribute('id', id);
+    m.setAttribute('markerWidth', '8');
+    m.setAttribute('markerHeight', '8');
+    m.setAttribute('refX', '7');
+    m.setAttribute('refY', '3');
+    m.setAttribute('orient', 'auto');
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', 'M0,0 L0,6 L8,3 z');
+    p.setAttribute('fill', color);
+    m.appendChild(p);
+    defs.appendChild(m);
+    return id;
+  }
+
+  function drawCurvedArrow(svg, defs, x1, y1, x2, y2, color, dashed, label, bendDir) {
+    const mid = makeMarker(defs, 'mk-' + Math.random().toString(36).slice(2), color);
+
+    // Bezier control point: perpendicular offset from midpoint
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    // Perpendicular unit vector
+    const px = -dy / len, py = dx / len;
+    const bend = bendDir * Math.max(30, len * 0.25);
+    const cx = mx + px * bend;
+    const cy = my + py * bend;
+
+    // Shorten endpoint so arrowhead doesn't overlap card
+    const ex = x2 - (dx / len) * 14;
+    const ey = y2 - (dy / len) * 14;
+
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', `M${x1},${y1} Q${cx},${cy} ${ex},${ey}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '2');
+    if (dashed) path.setAttribute('stroke-dasharray', '7,4');
+    path.setAttribute('marker-end', `url(#${mid})`);
+    svg.appendChild(path);
+
+    if (label) {
+      // Place label near the control point
+      const lx = cx + px * 16;
+      const ly = cy + py * 16;
+
+      // White halo background
+      const bg = document.createElementNS(NS, 'text');
+      bg.setAttribute('x', lx); bg.setAttribute('y', ly);
+      bg.setAttribute('text-anchor', 'middle');
+      bg.setAttribute('dominant-baseline', 'middle');
+      bg.setAttribute('font-size', '10');
+      bg.setAttribute('font-family', 'DM Sans, sans-serif');
+      bg.setAttribute('font-weight', '500');
+      bg.setAttribute('fill', 'white');
+      bg.setAttribute('stroke', 'white');
+      bg.setAttribute('stroke-width', '4');
+      bg.setAttribute('paint-order', 'stroke');
+      bg.textContent = label;
+      svg.appendChild(bg);
+
+      const fg = bg.cloneNode(true);
+      fg.setAttribute('fill', color);
+      fg.setAttribute('stroke', 'none');
+      svg.appendChild(fg);
+    }
+  }
+
+  function render() {
+    const svg = document.getElementById('arrow-svg');
+    svg.innerHTML = '';
+    const defs = addDefs(svg);
+
+    // Resize SVG to match its container (lanes-outer)
+    const svgRect = svg.getBoundingClientRect();
+
+    // Arrow definitions
+    // Each: from card edge → to card edge, with bend direction (+1 = right, -1 = left)
+    const arrows = [
+      // Broker mediates → Buyer reviews (right edge of broker card → left edge of buyer card)
+      { from: 's-broker-negotiate', fromSide: 'right',
+        to:   's-buyer-review',     toSide:   'left',
+        color: '#e07a2f', dashed: false, label: 'draft', bend: -1 },
+
+      // Broker drafts → Buyer signs (right → left, skipping a row)
+      { from: 's-broker-draft',  fromSide: 'right',
+        to:   's-buyer-sign',    toSide:   'left',
+        color: '#e07a2f', dashed: false, label: 'contract', bend: -1 },
+
+      // Buyer signs → Notary certifies (right → left)
+      { from: 's-buyer-sign',      fromSide: 'right',
+        to:   's-notary-certify',  toSide:   'left',
+        color: '#3d7dd4', dashed: false, label: 'signs', bend: -1 },
+
+      // Notary mails → Sellers receive (right → left of sellers col, dashed, long cross)
+      { from: 's-notary-mail',    fromSide: 'right',
+        to:   's-seller-receive', toSide:   'left',
+        color: '#3d7dd4', dashed: true, label: '✉ mail', bend: 1 },
+
+      // Sellers mail back → Notary receives (left of sellers → right of notary)
+      { from: 's-seller-mail',    fromSide: 'left',
+        to:   's-notary-receive', toSide:   'right',
+        color: '#9b59b6', dashed: true, label: '✉ mail', bend: -1 },
+    ];
+
+    arrows.forEach(a => {
+      const fr = rect(a.from);
+      const tr = rect(a.to);
+      if (!fr || !tr) return;
+
+      let x1, y1, x2, y2;
+
+      // Source point
+      if (a.fromSide === 'right')  { x1 = fr.right;  y1 = fr.top + fr.height / 2; }
+      else if (a.fromSide === 'left')  { x1 = fr.left;   y1 = fr.top + fr.height / 2; }
+      else if (a.fromSide === 'bottom'){ x1 = fr.left + fr.width / 2; y1 = fr.bottom; }
+      else                              { x1 = fr.left + fr.width / 2; y1 = fr.top; }
+
+      // Target point
+      if (a.toSide === 'left')    { x2 = tr.left;   y2 = tr.top + tr.height / 2; }
+      else if (a.toSide === 'right')  { x2 = tr.right;  y2 = tr.top + tr.height / 2; }
+      else if (a.toSide === 'top')    { x2 = tr.left + tr.width / 2; y2 = tr.top; }
+      else                             { x2 = tr.left + tr.width / 2; y2 = tr.bottom; }
+
+      // Convert from page coords to SVG-local coords
+      const p1 = svgPt(x1, y1, svg);
+      const p2 = svgPt(x2, y2, svg);
+
+      drawCurvedArrow(svg, defs, p1.x, p1.y, p2.x, p2.y,
+                      a.color, a.dashed, a.label, a.bend);
+    });
+  }
+
+  // Render after fonts/layout have settled
+  if (document.readyState === 'complete') {
+    setTimeout(render, 150);
+  } else {
+    window.addEventListener('load', () => setTimeout(render, 150));
+  }
+  window.addEventListener('resize', render);
+})();
+</script>
+
+</body>
+</html>
